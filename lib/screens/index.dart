@@ -45,7 +45,7 @@ class _IndexScreenState extends State<IndexScreen>
     });
 
     // Navigate after 2.5s
-    Future.delayed(const Duration(milliseconds:3500), () {
+    Future.delayed(const Duration(milliseconds: 3500), () {
       Navigator.pushReplacementNamed(context, '/introduction');
     });
   }

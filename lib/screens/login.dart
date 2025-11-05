@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<double> _animation;
 
   bool _loading = false;
+  bool _obscurePassword = true; // <-- password visibility state
 
   Future<void> _login(BuildContext context) async {
     final email = emailController.text.trim();
@@ -59,7 +60,8 @@ class _LoginScreenState extends State<LoginScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Login Failed", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        title: Text("Login Failed",
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         content: Text(message, style: GoogleFonts.poppins()),
         actions: [
           TextButton(
@@ -117,32 +119,36 @@ class _LoginScreenState extends State<LoginScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // ✅ Replaced waving hand with URINOVA logo text
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Welcome',
+                            'URIN',
                             style: GoogleFonts.poppins(
-                              fontSize: 28,
+                              fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: Colors.teal[800],
+                              color: Colors.teal[900],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          AnimatedBuilder(
-                            animation: _animation,
-                            builder: (context, child) {
-                              return Transform.rotate(
-                                angle: _animation.value,
-                                child: const Text(
-                                  '👋',
-                                  style: TextStyle(fontSize: 28),
-                                ),
-                              );
-                            },
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.camera_alt,
+                            size: 32,
+                            color: Colors.teal[900],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'VA',
+                            style: GoogleFonts.poppins(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.teal[900],
+                            ),
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 8),
                       Text(
                         'Log in to monitor your health.',
@@ -153,6 +159,8 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
                       const SizedBox(height: 32),
+
+                      // ✅ Email field
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -172,7 +180,10 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 20),
+
+                      // ✅ Password field
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -182,17 +193,32 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       TextField(
                         controller: passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
                           hintText: 'Enter your password',
                           filled: true,
                           fillColor: Colors.white,
-                          border: OutlineInputBorder(
+                          border: const OutlineInputBorder(
                             borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 32),
+
+                      // ✅ Login button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -205,7 +231,8 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ),
                           child: _loading
-                              ? const CircularProgressIndicator(color: Colors.white)
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white)
                               : Text(
                                   'Login',
                                   style: GoogleFonts.poppins(
@@ -215,7 +242,10 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                         ),
                       ),
+
                       const SizedBox(height: 16),
+
+                      // ✅ Go to Register
                       TextButton(
                         onPressed: () =>
                             Navigator.pushNamed(context, '/register'),

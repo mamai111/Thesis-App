@@ -13,9 +13,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
   bool _loading = false;
+
+  // 👁️ state for toggle password visibility
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -34,7 +39,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = passwordController.text;
     final confirmPassword = confirmPasswordController.text;
 
-    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (name.isEmpty ||
+        email.isEmpty ||
+        phone.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       _showAlert('Please fill in all fields.');
       return;
     }
@@ -52,7 +61,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           .createUserWithEmailAndPassword(email: email, password: password);
 
       // ✅ Save extra user data in Firestore
-      await FirebaseFirestore.instance.collection('users').doc(userCred.user!.uid).set({
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCred.user!.uid)
+          .set({
         'name': name,
         'email': email,
         'phone': phone,
@@ -76,7 +88,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Notice', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        title: Text('Notice',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         content: Text(message, style: GoogleFonts.poppins()),
         actions: [
           TextButton(
@@ -95,6 +108,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        width: double.infinity, // ✅ full width
+        height: double.infinity, // ✅ full height
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFFa8edea), Color(0xFFfed6e3)],
@@ -108,7 +123,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 400),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -134,11 +150,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      _buildTextField('Full Name', 'Enter your full name', nameController),
-                      _buildTextField('Email', 'Enter your email', emailController, keyboardType: TextInputType.emailAddress),
-                      _buildTextField('Phone Number', 'Enter your phone number', phoneController, keyboardType: TextInputType.phone),
-                      _buildTextField('Password', 'Create a password', passwordController, obscureText: true),
-                      _buildTextField('Confirm Password', 'Re-enter your password', confirmPasswordController, obscureText: true),
+                      _buildTextField(
+                        'Full Name',
+                        'Enter your full name',
+                        nameController,
+                      ),
+                      _buildTextField(
+                        'Email',
+                        'Enter your email',
+                        emailController,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      _buildTextField(
+                        'Phone Number',
+                        'Enter your phone number',
+                        phoneController,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      _buildTextField(
+                        'Password',
+                        'Create a password',
+                        passwordController,
+                        obscureText: _obscurePassword,
+                        toggleObscure: () {
+                          setState(() =>
+                              _obscurePassword = !_obscurePassword);
+                        },
+                      ),
+                      _buildTextField(
+                        'Confirm Password',
+                        'Re-enter your password',
+                        confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        toggleObscure: () {
+                          setState(() => _obscureConfirmPassword =
+                              !_obscureConfirmPassword);
+                        },
+                      ),
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
@@ -152,15 +200,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           child: _loading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : Text('Create Account', style: GoogleFonts.poppins(fontSize: 18, color: Colors.white)),
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white)
+                              : Text(
+                                  'Create Account',
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 18, color: Colors.white),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       Center(
                         child: TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: Text('Back to Login', style: GoogleFonts.poppins(color: Colors.teal[700])),
+                          child: Text(
+                            'Back to Login',
+                            style:
+                                GoogleFonts.poppins(color: Colors.teal[700]),
+                          ),
                         ),
                       ),
                     ],
@@ -174,8 +231,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String hint, TextEditingController controller,
-      {bool obscureText = false, TextInputType? keyboardType}) {
+  // 🔑 modified _buildTextField with toggle support
+  Widget _buildTextField(
+    String label,
+    String hint,
+    TextEditingController controller, {
+    bool obscureText = false,
+    TextInputType? keyboardType,
+    VoidCallback? toggleObscure,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -193,6 +257,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               border: const OutlineInputBorder(
                 borderRadius: BorderRadius.all(Radius.circular(12)),
               ),
+              suffixIcon: toggleObscure == null
+                  ? null
+                  : IconButton(
+                      icon: Icon(
+                        obscureText
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: toggleObscure,
+                    ),
             ),
           ),
         ],

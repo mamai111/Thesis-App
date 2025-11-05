@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../components/app_drawer.dart';
 import '../components/CustomBottomNavBar.dart';
 
@@ -12,7 +11,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _selectedIndex = 3;
+  int _selectedIndex = 4;
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
@@ -28,6 +27,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.pushReplacementNamed(context, '/capture');
         break;
       case 3:
+        Navigator.pushReplacementNamed(context, '/notifications'); // 🔔
+        break;
+      case 4:
+        /// Already on profile
         break;
     }
   }
@@ -50,9 +53,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       drawer: AppDrawer(),
       appBar: AppBar(
         backgroundColor: Colors.teal,
-        title: const Text(
-          'Profile',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          "Profile",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
         leading: Builder(
           builder: (context) => IconButton(
@@ -71,7 +77,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           if (!snapshot.hasData || snapshot.data == null) {
             return const Center(
-                child: Text("No profile data found. Please update."));
+              child: Text("No profile data found. Please update."),
+            );
           }
 
           final userData = snapshot.data!;
@@ -92,7 +99,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     radius: 55,
                     backgroundColor: Colors.teal[100],
                     backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                        ? NetworkImage(photoUrl) // 👈 works for Supabase public URL
+                        ? NetworkImage(
+                            photoUrl,
+                          ) // 👈 works for Supabase public URL
                         : null,
                     child: (photoUrl == null || photoUrl.isEmpty)
                         ? Icon(Icons.person, size: 60, color: Colors.teal[700])
