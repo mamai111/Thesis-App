@@ -18,6 +18,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   int _selectedIndex = 3;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  // ignore: unused_field
   bool _hasUnread = false;
   bool _notificationsEnabled = true;
 
@@ -77,6 +78,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     if (!_notificationsEnabled) {
       return Scaffold(
+        drawer: AppDrawer(),
         appBar: AppBar(
           backgroundColor: Colors.teal,
           title: Text(
@@ -86,6 +88,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               color: Colors.white,
             ),
           ),
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            ),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: const Center(
           child: Text(
@@ -111,6 +120,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             color: Colors.white,
           ),
         ),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -124,7 +139,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             return Center(
               child: Text(
                 "No notifications yet.",
-                style: GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
+                style:
+                    GoogleFonts.poppins(fontSize: 16, color: Colors.grey[700]),
               ),
             );
           }
@@ -158,8 +174,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ],
                   ),
                   child: ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
                     leading: Icon(
                       Icons.notifications_active_rounded,
                       color: isRead ? Colors.grey : Colors.teal,
@@ -188,7 +204,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  /// ✅ Popup for full notification details
+  /// Popup for full notification details
   void _showNotificationDialog(BuildContext context, Map<String, dynamic> data) {
     showDialog(
       context: context,
@@ -225,7 +241,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  (data['message'] ?? 'No details available.').replaceAll(r'\n', '\n'),
+                  (data['message'] ?? 'No details available.')
+                      .replaceAll(r'\n', '\n'),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 15,
