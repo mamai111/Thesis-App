@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image/image.dart' as img;
 import '../components/CustomBottomNavBar.dart';
 import '../helpers/tflite_helper.dart';
 import 'results.dart';
@@ -24,6 +25,9 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
 
   bool _isLoading = false;
   bool _isModelLoaded = false;
+
+  bool _isUrineImageCheckDone = false;
+  bool _isUrine = true;
 
   final List<String> _symptoms = [
     "Burning sensation during urination",
@@ -56,6 +60,7 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
     for (var m in _medicationQuestions) _selectedMedications[m] = false;
 
     _loadModelInBackground();
+    _checkUrineImage();
   }
 
   void _loadModelInBackground() async {
@@ -65,8 +70,69 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
     }
   }
 
+  Future<void> _checkUrineImage() async {
+    bool isUrine = await _isUrineImage(_imageFile);
+    if (mounted) {
+      setState(() {
+        _isUrine = isUrine;
+        _isUrineImageCheckDone = true;
+      });
+    }
+  }
+
+  Future<bool> _isUrineImage(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final image = img.decodeImage(bytes);
+    if (image == null) return false;
+
+    double totalR = 0;
+    double totalG = 0;
+    double totalB = 0;
+    int count = 0;
+
+    for (int y = 0; y < image.height; y += 10) {
+      for (int x = 0; x < image.width; x += 10) {
+        final pixel = image.getPixel(x, y);
+        totalR += pixel.r.toDouble();
+        totalG += pixel.g.toDouble();
+        totalB += pixel.b.toDouble();
+        count++;
+      }
+    }
+
+    final avgR = totalR / count;
+    final avgG = totalG / count;
+    final avgB = totalB / count;
+
+    final double hue = _rgbToHue(avgR, avgG, avgB);
+    final double brightness = (avgR + avgG + avgB) / 3;
+
+    final bool isYellowHue = hue >= 35 && hue <= 70;
+    final bool isBrightEnough = brightness >= 60 && brightness <= 250;
+
+    return isYellowHue && isBrightEnough;
+  }
+
+  double _rgbToHue(double r, double g, double b) {
+    r /= 255.0;
+    g /= 255.0;
+    b /= 255.0;
+
+    final max = [r, g, b].reduce((a, b) => a > b ? a : b);
+    final min = [r, g, b].reduce((a, b) => a < b ? a : b);
+    final delta = max - min;
+
+    double hue = 0;
+    if (delta == 0) hue = 0;
+    else if (max == r) hue = 60 * (((g - b) / delta) % 6);
+    else if (max == g) hue = 60 * (((b - r) / delta) + 2);
+    else if (max == b) hue = 60 * (((r - g) / delta) + 4);
+    if (hue < 0) hue += 360;
+    return hue;
+  }
+
   Future<void> _analyzeSymptoms() async {
-    if (!_isModelLoaded) return;
+    if (!_isModelLoaded || !_isUrine) return;
 
     setState(() => _isLoading = true);
 
@@ -103,7 +169,6 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
         .map((e) => e.key)
         .toList();
 
-    // Upload image to Supabase
     late String imageUrl;
     final fileName = 'urine_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final bucketName = 'urine_images';
@@ -117,7 +182,6 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
       return;
     }
 
-    // Save to Firestore
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
@@ -127,6 +191,7 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
         return;
       }
 
+      // ✅ Save analysis results
       await FirebaseFirestore.instance.collection('analysis_results').add({
         'userId': user.uid,
         'timestamp': DateTime.now(),
@@ -136,6 +201,24 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
         'medications': selectedMeds,
         'imageUrl': imageUrl,
       });
+
+      // ✅ Save to history (only once)
+      final historyRef = FirebaseFirestore.instance.collection('history');
+      final existing = await historyRef
+          .where('userId', isEqualTo: user.uid)
+          .where('imageUrl', isEqualTo: imageUrl)
+          .get();
+
+      if (existing.docs.isEmpty) {
+        await historyRef.add({
+          'userId': user.uid,
+          'hydration': bestLabel == 'Normal' ? 'Normal' : bestLabel,
+          'utiRisk': bestLabel == 'Possible UTI' ? 'High' : 'Low',
+          'imageUrl': imageUrl,
+          'date': Timestamp.now(),
+        });
+      }
+
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Firestore save failed: $e')));
@@ -214,10 +297,39 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
             ),
             const SizedBox(height: 12),
             Center(
-              child: Image.file(
-                _imageFile,
-                fit: BoxFit.contain,
-                width: double.infinity,
+              child: Stack(
+                children: [
+                  Image.file(
+                    _imageFile,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                  ),
+                  if (_isUrineImageCheckDone && !_isUrine)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.warning, color: Colors.white, size: 18),
+                            SizedBox(width: 4),
+                            Text(
+                              'Not Urine',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -264,7 +376,7 @@ class _SymptomsScreenState extends State<SymptomsScreen> {
               child: SizedBox(
                 width: 200,
                 child: ElevatedButton.icon(
-                  onPressed: (!_isModelLoaded || _isLoading)
+                  onPressed: (!_isModelLoaded || _isLoading || !_isUrine)
                       ? null
                       : _analyzeSymptoms,
                   icon: _isLoading
